@@ -275,3 +275,16 @@ pre {
 .searchComponent{
   overflow: hidden;
 }
+
+.titleContainer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pageBox  {
+  cursor: pointer;
+}
+
+.pageBox button {
+  cursor: pointer;
+}

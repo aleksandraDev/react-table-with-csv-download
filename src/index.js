@@ -1,458 +1,469 @@
-import React, { Component } from 'react';
-import { Scrollbars } from 'react-custom-scrollbars';
-import MdFileDownload from 'react-icons/lib/md/file-download';
-import Search from 'react-icons/lib/md/search';
-import Paginator from 'react-js-paginator';
-import SearchBar from 'react-js-search';
-import FileSaver from 'file-saver/FileSaver';
-import PropTypes from 'prop-types';
-import ReactHtmlParser from 'react-html-parser';
-import './style.css';
+import React, { useState, useEffect } from "react";
+// import { MdFileDownload } from 'react-icons';
+import Paginator from "react-js-paginator";
+import SearchBar from "react-js-search";
+import PropTypes from "prop-types";
+import ReactHtmlParser from "react-html-parser";
+import { saveAs } from "file-saver";
 
-/**
- * TableViewer component
- * @author [Jose Antonio Ciccio](https://github.com/jciccio)
- */
+import "./style.css";
 
-class TableViewer extends Component {
-  constructor(props) {
-    super(props);
-    this.generateAndDownloadCSV = this.generateAndDownloadCSV.bind(this);
-    this.state = {
-      currentPage: 1,
-      searchResults: null,
-    };
+const TableCsvViewer = ({
+  content,
+  headers,
+  minHeight,
+  maxHeight,
+  activateDownloadButton,
+  headerCss,
+  titleStyle,
+  bodyCss,
+  filename,
+  renderLineNumber,
+  reverseLineNumber,
+  pagination,
+  pageBoxStyle,
+  activePageBoxStyle,
+  maxPagesToDisplay,
+  downloadButtonStyle,
+  sortColumn,
+  encoding,
+  successColor,
+  warningColor,
+  errorColor,
+  downloadName,
+  title,
+  tableStyle,
+  topPagination,
+  searchEnabled,
+  placeholderSearchText,
+  caseInsensitive,
+  delimiter
+}) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchResults, setSearchResults] = useState(null);
 
-    if (this.props.content && this.props.sortColumn) {
-      this.sortTable();
+  const compare = criteria => (a, b) => {
+    if (a[criteria] < b[criteria]) {
+      return -1;
     }
-  }
+    if (a[criteria] > b[criteria]) {
+      return 1;
+    }
+    return 0;
+  };
 
-  highlightSyntax(json) {
+  const sortTable = () => {
+    if (sortColumn) {
+      content.sort(compare(sortColumn));
+    }
+  };
+
+  useEffect(() => {
+    if (content.length && sortColumn) {
+      sortTable();
+    }
+  }, [content, sortColumn]);
+
+  const highlightSyntax = json => {
     if (json) {
-      json = json
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+      const newJson = json
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
-      return json.replace(
+      return newJson.replace(
         /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-        (match) => {
-          let cls = 'hljs-number';
+        match => {
+          let cls = "hljs-number";
           if (/^"/.test(match)) {
             if (/:$/.test(match)) {
-              cls = 'hljs-key';
+              cls = "hljs-key";
             } else {
-              cls = 'hljs-string';
+              cls = "hljs-string";
             }
           } else if (/true|false/.test(match)) {
-            cls = 'hljs-boolean';
+            cls = "hljs-boolean";
           } else if (/null/.test(match)) {
-            cls = 'hljs-null';
+            cls = "hljs-null";
           }
           return `<span class="${cls}">${match}</span>`;
-        },
+        }
       );
     }
-    return '';
-  }
+    return "";
+  };
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.content !== this.props.content && this.props.sortColumn) {
-      this.sortTable();
-    }
-  }
+  const generateAndDownloadCSV = () => {
+    const encodingType = encoding || "UTF-8";
+    const csvType = { encodingType, type: `text/plain;charset=${encoding}` };
+    const newFilename = filename || "logResults.csv";
+    let csvContent = "";
+    const headersTemp = [];
 
-  sortTable() {
-    const criteria = this.props.sortColumn;
-    if (criteria) {
-      this.props.content.sort(this.compare(criteria));
-    }
-  }
-
-  compare(criteria) {
-    return (a, b) => {
-      if (a[criteria] < b[criteria]) { return -1; }
-      if (a[criteria] > b[criteria]) { return 1; }
-      return 0;
-    };
-  }
-
-  generateAndDownloadCSV() {
-    const encoding = this.props.encoding ? this.props.encoding : 'UTF-8';
-    const csvType = { encoding, type: `text/plain;charset=${encoding}` };
-    const filename = this.props.filename ? this.props.filename : 'logResults.csv';
-    let csvContent = '';
-    const data = this.props.content;
-    const headers = [];
-    this.props.content.forEach((rowObj) => {
+    content.forEach(rowObj => {
+      const rowObjKeys = Object.keys(rowObj);
       if (headers === undefined || headers.length === 0) {
-        for (const property in rowObj) {
-          if (rowObj.hasOwnProperty(property)) {
-            headers.push(property);
-          }
-        }
+        rowObjKeys.forEach(key => {
+          headersTemp.push(key);
+        });
       } else {
-        for (const property in rowObj) {
-          if (rowObj.hasOwnProperty(property)) {
-            if (headers.indexOf(property) == -1) {
-              headers.push(property);
-            }
+        rowObjKeys.forEach(key => {
+          if (!headers.includes(key)) {
+            headersTemp.push(key);
           }
-        }
+        });
       }
       const rowData = [];
-      for (const i in headers) {
-        let data = rowObj[headers[i]];
-        if (data && typeof data === 'string' && data.indexOf(',') >= 0) {
+      headersTemp.forEach(key => {
+        let data = rowObj[headersTemp[key]];
+        if (data && typeof data === "string" && data.includes(",")) {
           data = `"${data.replace(/"/g, '""')}"`;
         }
         rowData.push(data);
-      }
-      const row = rowData.join(',');
+      });
+      const row = rowData.join(delimiter);
       csvContent += `${row}\r\n`;
     });
-    const row = headers.join(',');
+    const row = headersTemp.join(delimiter);
     csvContent = `${row}\r\n${csvContent}`;
     const blob = new Blob([csvContent], csvType);
-    FileSaver.saveAs(blob, filename);
-  }
+    saveAs(blob, newFilename);
+  };
 
-  renderDownload() {
-    if (this.props.activateDownloadButton) {
-      const buttonStyle = this.props.downloadButtonStyle ? this.props.downloadButtonStyle : {};
+  const renderDownload = () => {
+    if (activateDownloadButton) {
+      const buttonStyle = downloadButtonStyle || {};
+      const csvFileName = filename || "logResults.csv";
       return (
         <div className="csvFileDownloader">
           <button
+            type="button"
             style={buttonStyle}
-            download={this.props.csvFileName}
-            onClick={this.generateAndDownloadCSV}
+            download={csvFileName}
+            onClick={generateAndDownloadCSV}
           >
-            <MdFileDownload
-            size={30}
-            color="green"/>
-            {this.props.downloadName ? this.props.downloadName : 'Download Table Data'}
+            {downloadName || "Download Table Data"}
           </button>
         </div>
       );
     }
 
     return null;
-  }
+  };
 
-  renderTitle() {
-    const titleStyle = this.props.titleStyle ? this.props.titleStyle : {};
-    if (Array.isArray(this.props.content) && this.props.content.length > 0) {
+  const renderTitle = () => {
+    if (Array.isArray(content) && content.length > 0) {
       return (
-        <h2 className="tableTitle" style={titleStyle}>{this.props.title}</h2>
+        <h2 className="tableTitle" style={titleStyle || {}}>
+          {title}
+        </h2>
       );
     }
 
     return null;
-  }
+  };
 
-  render() {
-    const tableStyle = this.props.tableStyle ? this.props.tableStyle : {};
-    const height = { maxHeight: this.props.maxHeight, ...tableStyle };
-    return (
-      <div className="tableWithCSV" >
-        {this.renderTitle()}
-        {this.renderStats()}
-        <div className="titleContainer">
-          {this.renderDownload()}
-          {this.renderTopPagination()}
-          <div className="search-container">
-            {this.renderSearch()}
-          </div>
-        </div>
+  const pageChange = page => {
+    setCurrentPage(page);
+  };
 
-        <div className="divTableContainer" >
-          <div className="divTable" style={height}>
-            <div className="divTableHeading">{this.renderHeaders()}</div>
-            <div className="divTableBody">{this.renderBody()}</div>
-          </div>
-        </div>
-        {this.renderPagination()}
-      </div>
-    );
-  }
-
-  onSearch(term, elements) {
+  const onSearch = (term, elements) => {
     if (term.length > 0) {
-      this.setState({ searchResults: elements });
+      setSearchResults(elements);
     } else {
-      this.setState({ searchResults: null });
+      setSearchResults(null);
     }
-    this.pageChange(1);
-  }
+    pageChange(1);
+  };
 
-  renderSearch() {
-    if (this.props.searchEnabled) {
-      let search = 'Search...';
-      if (this.props.placeholderSearchText) {
-        search = this.props.placeholderSearchText;
+  const renderSearch = () => {
+    if (searchEnabled) {
+      let search = "Search...";
+      if (placeholderSearchText) {
+        search = placeholderSearchText;
       }
-
-      const caseInsensitive = !!this.props.caseInsensitive;
 
       return (
         <SearchBar
-          onSearchTextChange={(b, e) => { this.onSearch(b, e); }}
-          onSearchButtonClick={(b, e) => { this.onSearch(b, e); }}
+          onSearchTextChange={(b, e) => {
+            onSearch(b, e);
+          }}
+          onSearchButtonClick={(b, e) => {
+            onSearch(b, e);
+          }}
           placeHolderText={search}
-          data={this.props.content}
-          caseInsensitive={caseInsensitive}
+          data={content}
+          caseInsensitive={!!caseInsensitive}
         />
       );
     }
 
     return null;
-  }
+  };
 
-  renderTopPagination() {
-    if (this.props.topPagination) {
-      return this.renderPagination(true);
-    }
-    return null;
-  }
-
-  renderPagination(isTop = false) {
-    if (this.props.pagination || isTop) {
-      const boxStyle = this.props.pageBoxStyle ? this.props.pageBoxStyle : {};
-      const activeStyle = this.props.activePageBoxStyle ? this.props.activePageBoxStyle : {};
-      const pagesDisplay = this.props.maxPagesToDisplay ? this.props.maxPagesToDisplay : 5;
-      if (this.props.content.length <= this.props.pagination) {
+  const renderPagination = (isTop = false) => {
+    if (pagination || isTop) {
+      const boxStyle = pageBoxStyle || {};
+      const activeStyle = activePageBoxStyle || {};
+      const pagesDisplay = maxPagesToDisplay || 5;
+      if (content.length <= pagination) {
         return null;
       }
 
-      let totalElements = this.props.content.length;
-      if (this.state.searchResults) {
-        totalElements = this.state.searchResults.length;
+      let totalElements = content.length;
+      if (searchResults) {
+        totalElements = searchResults.length;
       }
       return (
-          <Paginator
-            pageSize={this.props.pagination}
-            totalElements={totalElements}
-            onPageChangeCallback={(e) => { this.pageChange(e); }}
-            pageBoxStyle={boxStyle}
-            activePageBoxStyle={activeStyle}
-            maxPagesToDisplay={pagesDisplay}
-          />
+        <Paginator
+          pageSize={pagination}
+          totalElements={totalElements}
+          onPageChangeCallback={e => {
+            pageChange(e);
+          }}
+          pageBoxStyle={boxStyle}
+          activePageBoxStyle={activeStyle}
+          maxPagesToDisplay={pagesDisplay}
+        />
       );
     }
 
     return null;
-  }
+  };
 
-  pageChange(page) {
-    this.setState({ currentPage: page });
-  }
-
-  renderAllRows() {
-    const rows = this.props.content;
-    const { headers } = this.props;
-    return rows.map((row, i) => this.getRow(row, i));
-  }
-
-  renderRowPage(rows) {
-    const rowsContent = [];
-    const pageStart = (this.state.currentPage - 1) * this.props.pagination;
-    const rowQty = rows.length;
-    const { headers } = this.props;
-
-    for (let i = pageStart; i < pageStart + this.props.pagination && rows[i]; i++) {
-      rowsContent.push(this.getRow(rows[i], i));
+  const renderTopPagination = () => {
+    if (topPagination) {
+      return renderPagination(true);
     }
+    return null;
+  };
 
-    return rowsContent;
-  }
+  const renderLineNumberFunc = i => (
+    <div key={`table_row_number_${i}`} className="divTableCell">
+      {i}
+    </div>
+  );
 
-  renderBody() {
-    const rows = this.state.searchResults || this.props.content;
-    if (rows !== null) {
-      if (this.props.pagination) {
-        return this.renderRowPage(rows);
-      }
-      return this.renderAllRows(rows);
-    }
-
-    return (null);
-  }
-
-  getRow(row, i) {
-    const isWarning = row.warning || false;
-    const isSucccess = row.success;
-    let fontColor = '#000000';
-
-    if (isSucccess === false) { // because can be undefined
-      fontColor = (this.props.errorColor) ? this.props.errorColor : '#b30009';
-    } else if (isWarning) {
-      fontColor = (this.props.warningColor) ? this.props.warningColor : '#ba8722';
-    } else if (isSucccess === true) {
-      fontColor = (this.props.successColor) ? this.props.successColor : '#0b7012';
-    }
-
-    return (
-      <div
-        key={`table_row_${i} `}
-        className={'divTableRow'}
-        style={{ ...this.props.bodyCss, ...{ color: fontColor } } }
-      >
-        {this.renderRow(row, i)}
-      </div>
-    );
-  }
-
-  renderLineNumber(i) {
-    return (
-      <div
-        key={`table_row_number_${i}`}
-        className="divTableCell">
-        {i}
-      </div>
-    );
-  }
-
-  renderNumberHeader(headerCss) {
-    if (this.props.renderLineNumber) {
+  const renderNumberHeader = () => {
+    if (renderLineNumber) {
       return (
-        <div key={'table_header_line'} className="divTableCell" style={headerCss}>
+        <div key="table_header_line" className="divTableCell" style={headerCss}>
           Line
         </div>
       );
     }
 
     return null;
-  }
+  };
 
-  renderRow(row, i) {
-    const { headers } = this.props;
+  const renderRow = (row, i) => {
     if (row) {
       const rowData = [];
       // Render line number
-      if (this.props.renderLineNumber) {
+      if (renderLineNumber) {
         let number = i + 1;
-        if (this.props.reverseLineNumber) {
-          number = this.props.content.length - i;
+        if (reverseLineNumber) {
+          number = content.length - i;
         }
-        rowData.push(this.renderLineNumber(number));
+        rowData.push(renderLineNumberFunc(number));
       }
 
       // Create content
-      const rowContent = headers.map((header, element) => {
-        let content = row[header];
+      const rowContent = headers.map(header => {
+        let headerContent = row[header];
         let isJson = false;
 
         try {
-          if (isNaN(content)) {
-            content = JSON.parse(content);
+          if (typeof headerContent !== "number") {
+            headerContent = JSON.parse(content);
             isJson = true;
           }
         } catch (e) {
-          content = row[header];
-          if (content) {
-            content = content.split('\n').map((item, i) => (<p key={`part-${i}`}>{item}</p>));
+          headerContent = row[header];
+          if (headerContent) {
+            headerContent = headerContent
+              .split("\n")
+              .map(item => <p key={`part-${item}`}>{item}</p>);
           }
 
           isJson = false;
         }
         if (isJson) {
           const jsonText = JSON.stringify(content, undefined, 2);
-          const highlight = this.highlightSyntax(jsonText);
+          const highlight = highlightSyntax(jsonText);
           const parsedHtml = ReactHtmlParser(highlight, true);
           return (
-            <div
-              key={`table_row_${i}_cell_${element}`}
-              className="divTableCell">
-              <pre>
-                {parsedHtml}
-              </pre>
+            <div key={`table_row_${header}`} className="divTableCell">
+              <pre>{parsedHtml}</pre>
             </div>
           );
         }
 
         return (
-            <div
-              key={`table_row_${i}_cell_${element}`}
-              className="divTableCell">
-              {content}
-            </div>
+          <div key={`table_row_${header}`} className="divTableCell">
+            {content}
+          </div>
         );
       });
       return [...rowData, ...rowContent];
     }
 
     return null;
-  }
+  };
 
-  renderHeaders() {
-    const { headers } = this.props;
-    const { headerCss } = this.props;
+  const getRow = (row, i) => {
+    const isWarning = row.warning || false;
+    const isSucccess = row.success;
+    let fontColor = "#000000";
+
+    if (isSucccess === false) {
+      fontColor = errorColor || "#b30009";
+    } else if (isWarning) {
+      fontColor = warningColor || "#ba8722";
+    } else if (isSucccess === true) {
+      fontColor = successColor || "#0b7012";
+    }
+
+    return (
+      <div
+        key={`table_row_${i} `}
+        className="divTableRow"
+        style={{ ...bodyCss, ...{ color: fontColor } }}
+      >
+        {renderRow(row, i)}
+      </div>
+    );
+  };
+
+  const renderAllRows = () => {
+    const rows = content;
+    return rows.map((row, i) => getRow(row, i));
+  };
+
+  const renderRowPage = rows => {
+    const rowsContent = [];
+    const pageStart = (currentPage - 1) * pagination;
+
+    for (let i = pageStart; i < pageStart + pagination && rows[i]; i += 1) {
+      rowsContent.push(getRow(rows[i], i));
+    }
+
+    return rowsContent;
+  };
+
+  const renderBody = () => {
+    const rows = searchResults || content;
+    if (rows !== null) {
+      if (pagination) {
+        return renderRowPage(rows);
+      }
+      return renderAllRows(rows);
+    }
+
+    return null;
+  };
+
+  const renderHeaders = () => {
     if (headers) {
       return (
         <div className="divTableRow">
-          {this.renderNumberHeader(headerCss)}
-          {headers.map((header, index) => (
-              <div key={`table_header_${index}`} className="divTableCell" style={headerCss}>
-                {header}
-              </div>
+          {renderNumberHeader(headerCss)}
+          {headers.map(header => (
+            <div
+              key={`table_header_${header}`}
+              className="divTableCell"
+              style={headerCss}
+            >
+              {header}
+            </div>
           ))}
         </div>
       );
     }
 
     return null;
-  }
+  };
 
-  renderStats() {
-    if (this.props.renderStats) {
-      return (
-        <div>
-        <label>{this.props.title}</label>
-        <br />
-        <label className="tableWithCSVSuccess_true">
-          Success: {this.props.successRows}
-        </label>
-        <br />
-        <label className="tableWithCSVSuccess_false">
-          Error: {this.props.errorsRows}
-        </label>
-        <br />
-        <label>-----------------------------</label>
-        <br />
-        <label>Total: {this.props.totalRows}</label>
-        <br />
+  const height = { maxHeight, minHeight, ...tableStyle };
+
+  return (
+    <div className="tableWithCSV">
+      {renderTitle()}
+      <div className="titleContainer">
+        {renderDownload()}
+        {renderTopPagination()}
+        <div className="search-container">{renderSearch()}</div>
+      </div>
+
+      <div className="divTableContainer">
+        <div className="divTable" style={height}>
+          <div className="divTableHeading">{renderHeaders()}</div>
+          <div className="divTableBody">{renderBody()}</div>
         </div>
-      );
-    }
+      </div>
+      {renderPagination()}
+    </div>
+  );
+};
 
-    return null;
-  }
-}
-
-TableViewer.propTypes = {
-  content: PropTypes.array.isRequired,
-  headers: PropTypes.array.isRequired,
+TableCsvViewer.propTypes = {
+  content: PropTypes.instanceOf(Array).isRequired,
+  headers: PropTypes.instanceOf(Array).isRequired,
   minHeight: PropTypes.number.isRequired,
   maxHeight: PropTypes.number.isRequired,
   activateDownloadButton: PropTypes.bool,
-  topPaginator: PropTypes.bool,
-  headerCss: PropTypes.object,
-  titleStyle: PropTypes.object,
-  bodyCss: PropTypes.object,
+  headerCss: PropTypes.shape({}),
+  titleStyle: PropTypes.shape({}),
+  bodyCss: PropTypes.shape({}),
   filename: PropTypes.string,
   renderLineNumber: PropTypes.bool,
   reverseLineNumber: PropTypes.bool,
   pagination: PropTypes.number,
-  pageBoxStyle: PropTypes.object,
-  activePageBoxStyle: PropTypes.object,
+  pageBoxStyle: PropTypes.shape({}),
+  activePageBoxStyle: PropTypes.shape({}),
   maxPagesToDisplay: PropTypes.number,
-  downloadButtonStyle: PropTypes.object,
+  downloadButtonStyle: PropTypes.shape({}),
   sortColumn: PropTypes.string,
   encoding: PropTypes.string,
   successColor: PropTypes.string,
   warningColor: PropTypes.string,
   errorColor: PropTypes.string,
+  downloadName: PropTypes.string,
+  title: PropTypes.string,
+  placeholderSearchText: PropTypes.string,
+  tableStyle: PropTypes.shape({}),
+  topPagination: PropTypes.bool,
+  searchEnabled: PropTypes.bool,
+  caseInsensitive: PropTypes.bool,
+  delimiter: PropTypes.string
 };
 
-export default TableViewer;
+TableCsvViewer.defaultProps = {
+  activateDownloadButton: false,
+  headerCss: {},
+  titleStyle: {},
+  bodyCss: {},
+  filename: "",
+  renderLineNumber: false,
+  reverseLineNumber: false,
+  pagination: 5,
+  pageBoxStyle: {},
+  activePageBoxStyle: {},
+  maxPagesToDisplay: 100,
+  downloadButtonStyle: {},
+  sortColumn: "",
+  encoding: "",
+  successColor: "",
+  warningColor: "",
+  errorColor: "",
+  downloadName: "",
+  title: "",
+  placeholderSearchText: "",
+  tableStyle: {},
+  topPagination: false,
+  searchEnabled: false,
+  caseInsensitive: false,
+  delimiter: ","
+};
+
+export default TableCsvViewer;

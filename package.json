@@ -1,29 +1,44 @@
 {
   "name": "react-js-table-with-csv-dl",
-  "version": "0.8.8",
+  "version": "0.9.0",
   "description": "React JS tables and log viewer with stats if needed. Has the functionality to dowload table contents in CSV file with data stored in class prop.",
   "main": "build/index.js",
   "peerDependencies": {
-    "react": "^16.0.0"
+    "react": "^16.13.0"
   },
   "dependencies": {
-    "file-saver": "^1.3.8",
-    "react": "^16.0.0",
+    "file-saver": "^2.0.2",
+    "lint-staged": "^10.0.8",
+    "prop-types": "^15.7.2",
+    "react": "^16.13.0",
     "react-html-parser": "^2.0.2",
+    "react-icons": "^3.9.0",
     "react-js-paginator": "^0.1.10",
     "react-js-search": "^0.2.4",
-    "webpack": "^4.42.0"
+    "webpack": "^5.0.0-beta.14"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack --watch",
     "build": "webpack",
     "lint": "eslint --report-unused-disable-directives src",
-    "fix": "eslint --fix --report-unused-disable-directives src"
+    "fix": "eslint --fix --report-unused-disable-directives src",
+    "format": "prettier --write \"src/**/*.js\""
   },
   "author": {
     "name": "Jose Antonio Ciccio",
     "email": "jciccio@gmail.com"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,json}": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
@@ -31,16 +46,17 @@
     "@babel/preset-env": "^7.8.7",
     "@babel/preset-react": "^7.8.3",
     "babel-core": "^6.26.3",
+    "babel-eslint": "^10.1.0",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.4.2",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-react": "^7.19.0",
-    "react-custom-scrollbars": "^4.2.1",
-    "react-dom": "^16.6.3",
-    "react-icons": "^2.2.7",
-    "style-loader": "^0.22.1",
+    "husky": "^4.2.3",
+    "prettier": "^1.19.1",
+    "react-dom": "^16.13.0",
+    "style-loader": "^1.1.3",
     "webpack-cli": "^3.3.11"
   },
   "repository": {
