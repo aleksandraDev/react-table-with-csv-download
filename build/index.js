@@ -295,12 +295,10 @@ module.exports = (() => {
                   ? e.forEach(function(t) {
                       o.push(t);
                     })
-                  : e.forEach(function(t) {
-                      r.includes(t) || o.push(t);
-                    });
+                  : (o = S(r));
                 var n = [];
                 o.forEach(function(e) {
-                  var r = t[o[e]];
+                  var r = t[e];
                   r &&
                     "string" == typeof r &&
                     r.includes(",") &&

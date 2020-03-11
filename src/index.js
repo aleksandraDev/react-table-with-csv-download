@@ -98,8 +98,7 @@ const TableCsvViewer = ({
     const csvType = { encodingType, type: `text/plain;charset=${encoding}` };
     const newFilename = filename || "logResults.csv";
     let csvContent = "";
-    const headersTemp = [];
-
+    let headersTemp = [];
     content.forEach(rowObj => {
       const rowObjKeys = Object.keys(rowObj);
       if (headers === undefined || headers.length === 0) {
@@ -107,15 +106,11 @@ const TableCsvViewer = ({
           headersTemp.push(key);
         });
       } else {
-        rowObjKeys.forEach(key => {
-          if (!headers.includes(key)) {
-            headersTemp.push(key);
-          }
-        });
+        headersTemp = [...headers];
       }
       const rowData = [];
       headersTemp.forEach(key => {
-        let data = rowObj[headersTemp[key]];
+        let data = rowObj[key];
         if (data && typeof data === "string" && data.includes(",")) {
           data = `"${data.replace(/"/g, '""')}"`;
         }

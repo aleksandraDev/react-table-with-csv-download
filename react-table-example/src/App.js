@@ -6,9 +6,9 @@ class App extends Component {
   constructor(props) {
     super(props);
 
-    let headers = ["number", "position", "name", "metadata"];
+    const headers = ["number", "position", "name", "metadata"];
 
-    let json = {
+    const json = {
       Key1: { id: 10, values: "1-2" },
       Key2: {},
       Key3: "(Zone 1)",
@@ -18,9 +18,9 @@ class App extends Component {
       Object: [{ id: 1000, values: "K-1" }]
     };
 
-    let text = '"Gianluigi\nBuffon"';
+    const text = '"Gianluigi\nBuffon"';
 
-    let table = [
+    const table = [
       { number: 12, name: text, success: true },
       {
         number: 21,
@@ -42,14 +42,14 @@ class App extends Component {
     ];
 
     this.state = {
-      table: table,
-      headers: headers,
+      table,
+      headers,
       activateDownloadButton: true
     };
   }
 
   render() {
-    let overallStyle = { width: "90%" };
+    const overallStyle = { width: "90%" };
     return (
       <div className="App">
         <header className="App-header">
@@ -72,6 +72,7 @@ class App extends Component {
           topPagination
           tableStyle={overallStyle}
           titleStyle={{ textAlign: "left" }}
+          delimiter=";"
         />
       </div>
     );
