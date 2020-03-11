@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-// import { MdFileDownload } from 'react-icons';
+import { MdFileDownload } from "react-icons/md";
 import Paginator from "react-js-paginator";
 import SearchBar from "react-js-search";
 import PropTypes from "prop-types";
@@ -142,6 +142,7 @@ const TableCsvViewer = ({
             download={csvFileName}
             onClick={generateAndDownloadCSV}
           >
+            <MdFileDownload />
             {downloadName || "Download Table Data"}
           </button>
         </div>
@@ -275,7 +276,7 @@ const TableCsvViewer = ({
 
         try {
           if (typeof headerContent !== "number") {
-            headerContent = JSON.parse(content);
+            headerContent = JSON.parse(headerContent);
             isJson = true;
           }
         } catch (e) {
@@ -289,7 +290,7 @@ const TableCsvViewer = ({
           isJson = false;
         }
         if (isJson) {
-          const jsonText = JSON.stringify(content, undefined, 2);
+          const jsonText = JSON.stringify(headerContent, undefined, 2);
           const highlight = highlightSyntax(jsonText);
           const parsedHtml = ReactHtmlParser(highlight, true);
           return (
@@ -301,10 +302,11 @@ const TableCsvViewer = ({
 
         return (
           <div key={`table_row_${header}`} className="divTableCell">
-            {content}
+            {headerContent}
           </div>
         );
       });
+
       return [...rowData, ...rowContent];
     }
 
@@ -335,10 +337,7 @@ const TableCsvViewer = ({
     );
   };
 
-  const renderAllRows = () => {
-    const rows = content;
-    return rows.map((row, i) => getRow(row, i));
-  };
+  const renderAllRows = rows => rows.map((row, i) => getRow(row, i));
 
   const renderRowPage = rows => {
     const rowsContent = [];
