@@ -1,3 +1,5 @@
+import "./style.css";
+
 import React, { useState, useEffect } from "react";
 import { MdFileDownload } from "react-icons/md";
 import Paginator from "react-js-paginator";
@@ -5,8 +7,6 @@ import SearchBar from "react-js-search";
 import PropTypes from "prop-types";
 import ReactHtmlParser from "react-html-parser";
 import { saveAs } from "file-saver";
-
-import "./style.css";
 
 const TableCsvViewer = ({
   content,

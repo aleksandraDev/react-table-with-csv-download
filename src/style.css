@@ -16,11 +16,6 @@
   width: 100%;
 }
 
-.tableWithCSV .header{
-  /*width: inherit;*/
- /* padding: 0 8px;*/
-}
-
 .tableWithCSV .header1{
   width: inherit;
   padding: 0 8px;
@@ -77,11 +72,6 @@
 .tableWithCSV th, td {
   padding: 5px;
   text-align: left;
-}
-
-.tableWithCSV thead tr {
-   /* display: block;
-    position: relative;*/
 }
 
 .tableWithCSV tbody {
